@@ -1,0 +1,9 @@
+{
+  "_comment": "Initial cohort: Claude-supported models only. Other providers are out of scope for this release. Model IDs are placeholders to be confirmed against the provider's current catalogue at run time.",
+  "cohort": [
+    {"name": "Claude Opus 5.5", "id": "claude-opus-5-5", "access": "public"},
+    {"name": "Claude Sonnet 5.5", "id": "claude-sonnet-5-5", "access": "public"},
+    {"name": "Claude Haiku 4.5", "id": "claude-haiku-4-5", "access": "public"},
+    {"name": "Claude Fable 5.1", "id": "claude-fable-5-1", "access": "public"}
+  ]
+}

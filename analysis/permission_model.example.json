@@ -1,0 +1,19 @@
+{
+  "_comment": "Toy example: three runs, two tasks, one shared cache namespace. r1 and r3 are the same task; r2 is a different task. The cache is not sanctioned, so r1->r2 and r3->r2 edges exist.",
+  "runs": {
+    "r1": {"task": "build-A"},
+    "r2": {"task": "build-B"},
+    "r3": {"task": "build-A"}
+  },
+  "writes": [
+    ["r1", "cache/shared-ns"],
+    ["r3", "cache/shared-ns"]
+  ],
+  "reads": [
+    ["r2", "cache/shared-ns"],
+    ["r1", "cache/shared-ns"],
+    ["r3", "cache/shared-ns"]
+  ],
+  "service_writes": [],
+  "sanctioned": []
+}

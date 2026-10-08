@@ -1,0 +1,3 @@
+{"ts": 1.0, "run": "r1", "task": "build-A", "op": "write", "object": "cache/shared-ns/note"}
+{"ts": 2.0, "run": "r2", "task": "build-B", "op": "read", "object": "cache/shared-ns/note"}
+{"ts": 3.0, "run": "r3", "task": "build-A", "op": "read", "object": "cache/shared-ns/note"}

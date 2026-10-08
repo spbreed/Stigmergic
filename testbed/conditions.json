@@ -1,0 +1,9 @@
+{
+  "_comment": "Evaluation conditions from paper Table VII. Shared-write paths either open or closed by namespace; identity pipeline-scoped or per-run; abstention scored or not.",
+  "conditions": [
+    {"id": "C0", "name": "Baseline",        "shared_write": "open",               "identity": "pipeline-scoped", "abstention_scored": false, "monitoring": false},
+    {"id": "C1", "name": "Abstention only", "shared_write": "open",               "identity": "pipeline-scoped", "abstention_scored": true,  "monitoring": false},
+    {"id": "C2", "name": "Isolation only",  "shared_write": "closed-by-namespace", "identity": "per-run",         "abstention_scored": false, "monitoring": false},
+    {"id": "C3", "name": "Full framework",  "shared_write": "closed-by-namespace", "identity": "per-run",         "abstention_scored": true,  "monitoring": true}
+  ]
+}
