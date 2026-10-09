@@ -1,0 +1,26 @@
+topology,runs,max_reach,mean_reach,frac_reaching
+T1 open (C0),10,10,10.0,1.0
+T1 open (C0),50,50,50.0,1.0
+T1 open (C0),100,100,100.0,1.0
+T1 open (C0),500,500,500.0,1.0
+T1 open (C0),1000,1000,1000.0,1.0
+T2 isolated (C2/C3),10,1,1.0,0.0
+T2 isolated (C2/C3),50,1,1.0,0.0
+T2 isolated (C2/C3),100,1,1.0,0.0
+T2 isolated (C2/C3),500,1,1.0,0.0
+T2 isolated (C2/C3),1000,1,1.0,0.0
+T3 sanctioned collab,10,1,1.0,0.0
+T3 sanctioned collab,50,1,1.0,0.0
+T3 sanctioned collab,100,1,1.0,0.0
+T3 sanctioned collab,500,1,1.0,0.0
+T3 sanctioned collab,1000,1,1.0,0.0
+T4 confused deputy,10,9,1.8,0.1
+T4 confused deputy,50,41,1.8,0.02
+T4 confused deputy,100,81,1.8,0.01
+T4 confused deputy,500,401,1.8,0.002
+T4 confused deputy,1000,801,1.8,0.001
+T5 misconfig (2 tasks),10,4,2.2,0.4
+T5 misconfig (2 tasks),50,20,8.6,0.4
+T5 misconfig (2 tasks),100,40,16.6,0.4
+T5 misconfig (2 tasks),500,200,80.6,0.4
+T5 misconfig (2 tasks),1000,400,160.6,0.4
