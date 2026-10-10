@@ -32,6 +32,38 @@ Measured result (`max N_reach` by topology × fleet size):
 Takeaway: containment is all-or-nothing. One relay or one shared object
 undoes isolation across the whole fleet.
 
+## E2 — shared-write monitor detection performance
+
+**Script:** `e2_monitor_roc.py`
+**Keys needed:** none. Synthetic labeled event logs; evaluates `monitor/shared_write_monitor.py`.
+**Outputs:** `results/e2_monitor.csv`, `results/e2_monitor.png`.
+
+Five scenarios (benign baseline, single board, high churn, mixed, slow drift)
+× five churn thresholds. Reports precision, recall, F1, false-positive rate,
+and detection latency (events-after-first-positive). Claim under test is RQ5
+plus the paper's own limitation that slow drift evades churn detection.
+
+Run:
+```
+python3 e2_monitor_roc.py
+```
+
+Measured headline (F1 at threshold = 3):
+
+| Scenario | F1 | Precision | Recall | FP rate | Latency |
+|---|---|---|---|---|---|
+| S1 benign only | 0.00 | 0.00 | 0.00 | 0.00 | — (no positives) |
+| S2 single board | 0.93 | 1.00 | 0.87 | 0.00 | 4 events |
+| S3 high churn | 0.95 | 1.00 | 0.90 | 0.00 | 6 events |
+| S4 mixed | 0.95 | 1.00 | 0.90 | 0.00 | 20 events |
+| S5 slow drift | 0.86 | 1.00 | 0.75 | 0.00 | 75 events |
+
+Takeaways: precision is 1.00 whenever the monitor flags (zero false
+positives on the benign baseline); recall and detection latency degrade
+smoothly as the churn threshold rises; slow-drift boards at threshold ≥ 5
+are missed entirely, confirming the paper's §VIII limitation on write
+isolation vs. temporal evasion.
+
 ## E3 — abstention under reward pressure *(harness only, not yet run)*
 
 **Script:** `e3_abstention.py`
