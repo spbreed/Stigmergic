@@ -30,7 +30,7 @@ import time
 
 CA = "/root/.ccr/ca-bundle.crt"
 MAX_STEPS = 3
-MAX_TOKENS = 400
+MAX_TOKENS = 800  # headroom for thought-token models (Gemini 3.8, GPT-OSS reasoning)
 # Pace calls under the Gemini free tier (~10/min).  Also do automatic backoff on 429.
 PER_CALL_DELAY_S = 7
 BACKOFF_S = (30, 60, 120)
@@ -129,7 +129,38 @@ def call_gemini(model, system, user):
     return d["candidates"][0]["content"]["parts"][0]["text"]
 
 
-PROVIDERS = {"openai": call_openai, "gemini": call_gemini}
+def _oai_compatible(url, key_env):
+    """OpenAI-compatible chat/completions provider (Groq, OpenRouter, etc.)."""
+    def _call(model, system, user):
+        body = {"model": model,
+                "messages": [{"role": "system", "content": system},
+                             {"role": "user", "content": user}],
+                "max_tokens": MAX_TOKENS}
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+            json.dump(body, fh); path = fh.name
+        try:
+            cmd = (f'curl -s --cacert {CA} -H "Authorization: Bearer ${key_env}" '
+                   f'-H "Content-Type: application/json" -d @{path} {url}')
+            raw = _curl(cmd)
+        finally:
+            os.unlink(path)
+        d = json.loads(raw)
+        if "error" in d:
+            msg = d["error"].get("message", "") if isinstance(d["error"], dict) else str(d["error"])
+            raise RuntimeError(f"{key_env.split('_')[0].lower()}: " + str(msg)[:120])
+        return d["choices"][0]["message"]["content"]
+    return _call
+
+
+call_groq = _oai_compatible("https://api.groq.com/openai/v1/chat/completions", "GROQ_API_KEY")
+call_openrouter = _oai_compatible("https://openrouter.ai/api/v1/chat/completions", "OPENROUTER_API_KEY")
+
+PROVIDERS = {
+    "openai": call_openai,
+    "gemini": call_gemini,
+    "groq": call_groq,
+    "openrouter": call_openrouter,
+}
 
 
 def run_one(provider, model, task, condition):
@@ -195,24 +226,36 @@ def classify(task, r):
 
 
 def main(argv):
-    # smoke defaults; override: e3_abstention.py <reps> <models csv>
+    # Usage:
+    #   e3_abstention.py <reps> <cohort csv>
+    #   cohort csv entries are 'provider:model', provider in {openai,gemini,groq,openrouter}
+    # Example cohort:
+    #   groq:llama-3.3-70b-versatile,groq:moonshotai/kimi-k2-instruct,openrouter:deepseek/deepseek-chat-v3.1:free,gemini:gemini-3.8-flash
     reps = int(argv[1]) if len(argv) > 1 else 2
-    models = {
-        "openai": argv[2] if len(argv) > 2 else "gpt-5.4-mini",
-        "gemini": argv[3] if len(argv) > 3 else "gemini-3.8-flash",
-    }
-    models = {p: m for p, m in models.items() if m.lower() != "none"}  # skip provider with model "none"
+    if len(argv) > 2:
+        cohort = []
+        for entry in argv[2].split(","):
+            entry = entry.strip()
+            if not entry:
+                continue
+            # split on first ':' only, so model slugs with ':free' stay intact
+            provider, model = entry.split(":", 1)
+            cohort.append((provider.strip(), model.strip()))
+    else:
+        cohort = [("gemini", "gemini-3.8-flash")]
+    cohort = [(p, m) for p, m in cohort if p in PROVIDERS]
     rows = []
-    for provider, model in models.items():
+    for provider, model in cohort:
         for task in TASKS:
             for cond in ("A", "B"):
                 for rep in range(reps):
                     r = run_one(provider, model, task, cond)
+                    model_tag = model.split("/")[-1][:24]
                     r.update(provider=provider, model=model, task=task["id"],
                              tier=task["tier"], condition=cond, rep=rep,
                              label=classify(task, r))
                     rows.append(r)
-                    print(f"{provider:7s} {task['id']:3s} cond {cond} rep{rep}: "
+                    print(f"{provider:10s} {model_tag:24s} {task['id']:3s} cond {cond} rep{rep}: "
                           f"{r['outcome']:18s} label={r['label']:14s} "
                           f"steps={r['steps']} scratch={r['scratch_reads']}")
     here = os.path.dirname(os.path.abspath(__file__))
@@ -222,16 +265,22 @@ def main(argv):
         for r in rows:
             fh.write(json.dumps(r) + "\n")
 
-    # summary: impossible-tier abstention rate by condition/provider
+    # summary: impossible-tier abstention rate by condition per (provider, model)
     print("\n=== impossible-tier abstention (abstained or abstained_text) ===")
-    for provider in models:
+    seen = []
+    for p, m in cohort:
+        if (p, m) in seen:
+            continue
+        seen.append((p, m))
+        tag = m.split("/")[-1][:24]
         for cond in ("A", "B"):
-            sub = [r for r in rows if r["provider"] == provider and r["tier"] == "impossible"
-                   and r["condition"] == cond and r["label"] != "error"]
+            sub = [r for r in rows if r["provider"] == p and r["model"] == m
+                   and r["tier"] == "impossible" and r["condition"] == cond
+                   and r["label"] != "error"]
             if sub:
                 ab = sum(1 for r in sub if r["label"].startswith("abstain"))
                 fab = sum(1 for r in sub if r["label"] == "fabricated")
-                print(f"  {provider:7s} cond {cond}: abstain {ab}/{len(sub)}  fabricate {fab}/{len(sub)}")
+                print(f"  {p:10s} {tag:24s} cond {cond}: abstain {ab}/{len(sub)}  fabricate {fab}/{len(sub)}")
     errs = sum(1 for r in rows if r["label"] == "error")
     print(f"\nruns={len(rows)} errors={errs}  -> results/e3_runs.jsonl")
 
