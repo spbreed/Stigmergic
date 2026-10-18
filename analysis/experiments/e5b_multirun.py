@@ -91,21 +91,32 @@ def main():
             events = [json.loads(ln) for ln in fh if ln.strip()]
         with open(AGENT_RUNS) as fh:
             agent_rows = json.load(fh)
-        # Tag with rep index for aggregation.
-        for ev in events:
-            ev["rep"] = rep
+        # Tag with rep index and persist a per-rep trace so later analysis can
+        # recover the actual read-vs-write pairings (lost before this change).
+        per_rep_path = os.path.join(RESULTS, f"e5b_server_events_rep{rep}.jsonl")
+        with open(per_rep_path, "w") as fh:
+            for ev in events:
+                ev["rep"] = rep
+                fh.write(json.dumps(ev) + "\n")
         for r in agent_rows:
             r["rep"] = rep
         all_rep_rows.extend(agent_rows)
 
-        # Score this rep's monitor behavior.
+        # Score this rep's monitor behavior and record CROSS_TASK_READ pairs.
         alerts = mon(events, churn_threshold=2)
-        ct = sum(1 for a in alerts if a[1] == "CROSS_TASK_READ")
-        nc = sum(1 for a in alerts if a[1] == "NAMESPACE_CHURN")
+        ct_pairs = [{"ts": a[0], "object": a[2], "detail": a[3]}
+                    for a in alerts if a[1] == "CROSS_TASK_READ"]
+        nc_prefixes = [{"ts": a[0], "prefix": a[2], "detail": a[3]}
+                       for a in alerts if a[1] == "NAMESPACE_CHURN"]
         all_rep_alerts.append({"rep": rep, "events": len(events),
-                               "cross_task_read": ct, "namespace_churn": nc,
-                               "any_alert": (ct + nc) > 0})
-        print(f"  rep{rep} events={len(events)} CT_READ={ct} NS_CHURN={nc}")
+                               "cross_task_read": len(ct_pairs),
+                               "namespace_churn": len(nc_prefixes),
+                               "any_alert": (len(ct_pairs) + len(nc_prefixes)) > 0,
+                               "ct_pairs": ct_pairs,
+                               "nc_prefixes": nc_prefixes})
+        print(f"  rep{rep} events={len(events)} CT_READ={len(ct_pairs)} NS_CHURN={len(nc_prefixes)}")
+        for p in ct_pairs:
+            print(f"    CT_READ: {p['detail']}")
 
     # Aggregate agent-task completion.
     print("\n=== multi-run aggregate ===")

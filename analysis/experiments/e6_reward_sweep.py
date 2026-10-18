@@ -135,7 +135,8 @@ def _oai(url, key_env):
 
 
 call_groq = _oai("https://api.groq.com/openai/v1/chat/completions", "GROQ_API_KEY")
-PROVIDERS = {"gemini": call_gemini, "groq": call_groq}
+call_openrouter = _oai("https://openrouter.ai/api/v1/chat/completions", "OPENROUTER_API_KEY")
+PROVIDERS = {"gemini": call_gemini, "groq": call_groq, "openrouter": call_openrouter}
 
 
 def run_one(provider, model, condition):
@@ -178,13 +179,23 @@ def classify(r):
 
 def main():
     reps = 3
+    # Default cohort: anchor (Qwen 3.8-27B) + cross-model replications
     cohort = []
-    if os.environ.get("GEMINI_API_KEY"):
-        cohort.append(("gemini", "gemini-3.8-flash"))
     if os.environ.get("GROQ_API_KEY"):
         cohort.append(("groq", "qwen/qwen3.8-27b"))
+        cohort.append(("groq", "openai/gpt-oss-20b"))
+    if os.environ.get("OPENROUTER_API_KEY"):
+        cohort.append(("openrouter", "google/gemma-4-26b-a4b-it:free"))
+    if os.environ.get("GEMINI_API_KEY"):
+        cohort.append(("gemini", "gemini-3.8-flash"))
     if not cohort:
-        print("ERROR: need GEMINI_API_KEY or GROQ_API_KEY", file=sys.stderr); sys.exit(2)
+        print("ERROR: need at least one of GROQ/OPENROUTER/GEMINI keys", file=sys.stderr); sys.exit(2)
+    # Allow override: python3 e6_reward_sweep.py "provider:model,provider:model,..."
+    if len(sys.argv) > 1:
+        cohort = []
+        for e in sys.argv[1].split(","):
+            if not e.strip(): continue
+            p, m = e.strip().split(":", 1); cohort.append((p, m))
 
     conditions = ["R0", "R1", "R2", "R3", "R4"]
     rows = []
