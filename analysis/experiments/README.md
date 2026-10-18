@@ -2,6 +2,25 @@
 
 Reproducible paper experiments. Each script writes to `../../results/`.
 
+## Paper ↔ repo experiment numbering
+
+The paper (2026-10-18 revision) presents experiments reward-first — E1 is the
+primary lever, E2 is the mechanism, E3 is the infrastructure half, E4-E7 are
+the detection pillar. Repo filenames preserve historical order (so git log
+and cross-references stay stable). This table is the only authoritative map.
+
+| Paper § | Paper name | Repo script |
+|---|---|---|
+| E1 | Reward-structure sweep (primary lever) | `e6_reward_sweep.py` |
+| E2 | Reward pressure across models (mechanism) | `e3_abstention.py` |
+| E3 | Reach-graph containment | `e1_reach_sweep.py` |
+| E4 | Shared-write monitor ROC (synthetic) | `e2_monitor_roc.py` |
+| E5 | Monitor on AgentDojo benchmark | `e4_agentdojo_multi.py` |
+| E6 | Monitor under AgentDojo DirectAttack | `e5a_agentdojo_injection.py` |
+| E7 | Monitor on vulnerable Flask testbed | `e5b_vuln_api_server.py` + `e5b_agent_runner.py` |
+
+The sections below are listed in repo-filename order for runnability.
+
 ## E1 — containment sweep on the shared-write reach graph
 
 **Script:** `e1_reach_sweep.py`
