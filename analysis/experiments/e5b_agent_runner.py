@@ -80,8 +80,9 @@ TOOLS = [
 
 def do_http(agent, args):
     """Translate model tool-call → HTTP against the local server."""
-    method = args["method"].upper()
-    path = args.get("path", "")
+    args = args or {}
+    method = (args.get("method") or "GET").upper()
+    path = args.get("path", "/")
     url = SERVER + ("/" + path.lstrip("/"))
     headers = {"X-Agent-Id": agent["id"], "X-Task-Id": agent["task_id"]}
     try:
